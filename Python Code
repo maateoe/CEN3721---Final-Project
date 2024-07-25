@@ -1,90 +1,243 @@
 import streamlit as st
-import requests
 import pandas as pd
-import plotly.express as px
+import numpy as np
+import requests
+import matplotlib.pyplot as plt
+#import sqlite3
+#from sqlite3 import Error
 
-# Set up the URLScan API
-URLSCAN_API_KEY = '32e855ee-c1eb-4c2e-b8b0-74662973ae28'  
-URLSCAN_API_URL = 'https://urlscan.io/api/v1/scan/'
-URLSCAN_RESULT_API_URL = 'https://urlscan.io/api/v1/result/'
+# API Key
+#Jonathan
+# 9X4EL8OIZHZX1YOV
+API_KEY = 'YU2B2GDNX6D26GQB'
 
-def fetch_scan_results(url):
-    headers = {'API-Key': URLSCAN_API_KEY, 'Content-Type': 'application/json'}
-    data = {'url': url, 'public': 'on'}
-    response = requests.post(URLSCAN_API_URL, headers=headers, json=data)
-    if response.status_code == 200:
-        return response.json()
+
+#Mateo 
+# YU2B2GDNX6D26GQB
+
+# Function to get stock data
+def get_stock_data(symbol):
+    base_url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={API_KEY}'
+    response = requests.get(base_url)
+    data = response.json()
+    return data
+
+# Function to create a database connection
+# def create_connection(db_file):
+#     conn = None
+#     try:
+#         conn = sqlite3.connect(db_file)
+#         return conn
+#     except Error as e:
+#         st.error(e)
+#     return conn
+
+# Function to create tables
+# def create_table(conn):
+#     try:
+#         c = conn.cursor()
+#         c.execute('''CREATE TABLE IF NOT EXISTS finance_data
+#                      (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+#                       income REAL NOT NULL, 
+#                       expenses REAL NOT NULL, 
+#                       investment REAL NOT NULL,
+#                       stock_symbol TEXT NOT NULL)''')
+#     except Error as e:
+#         st.error(e)
+
+# Function to insert data into the table
+def insert_data(conn, data):
+    sql = '''INSERT INTO finance_data(income, expenses, investment, stock_symbol)
+             VALUES(?, ?, ?, ?)'''
+    cur = conn.cursor()
+    cur.execute(sql, data)
+    conn.commit()
+    return cur.lastrowid
+
+# Function to fetch all data from the table
+def fetch_all_data(conn):
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM finance_data")
+    rows = cur.fetchall()
+    return rows
+
+# Database setup
+# database = "finance_data.db"
+# conn = create_connection(database)
+# if conn is not None:
+#     create_table(conn)
+# else:
+#     st.error("Error! Cannot create the database connection.")
+
+# Title and Description
+st.title("Personal Finance Dashboard")
+st.write("Welcome to the Personal Finance Dashboard. Track your income, expenses, and investments in one place.")
+
+# Custom CSS for Streamlit
+custom_css = """
+<style>
+    body {
+        background-color: #1e1e2e;
+        color: #ffffff;
+        font-family: Arial, sans-serif;
+    }
+    
+    .stButton>button {
+        background-color: #2c2c54;
+        color: #ffffff;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    .stButton>button:hover {
+        background-color: #3c40c6;
+    }
+
+    .stSelectbox select {
+        background-color: #2c2c54;
+        color: #ffffff;
+    }
+
+    .stCheckbox>div {
+        color: #ffffff;
+    }
+
+    .bouncing-text {
+        animation: bounce 2s infinite;
+        color: #706fd3;
+        font-size: 1.5em;
+        font-weight: bold;
+    }
+
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-30px);
+        }
+        60% {
+            transform: translateY(-15px);
+        }
+    }
+</style>
+"""
+
+# Display custom CSS
+st.markdown(custom_css, unsafe_allow_html=True)
+
+# Bouncing Text
+st.markdown("<h2 class='bouncing-text'>Take Control of Your Finances!</h2>", unsafe_allow_html=True)
+
+# Sidebar for user input
+st.sidebar.title("User Input")
+income = st.sidebar.number_input("Enter your monthly income:", min_value=0.0, format="%.2f")
+expenses = st.sidebar.number_input("Enter your monthly expenses:", min_value=0.0, format="%.2f")
+investment = st.sidebar.number_input("Enter your monthly investment:", min_value=0.0, format="%.2f")
+stock_symbol = st.sidebar.text_input("Enter stock symbol:", value="AAPL")
+
+# Button to save data
+# if st.sidebar.button("Save Data"):
+#     with conn:
+#         data = (income, expenses, investment, stock_symbol)
+#         insert_data(conn, data)
+#         st.sidebar.success("Data saved successfully!")
+
+# Fetch all data
+# if st.sidebar.checkbox("Show All Data"):
+#     st.subheader("All Data")
+#     rows = fetch_all_data(conn)
+#     df_all_data = pd.DataFrame(rows, columns=["ID", "Income", "Expenses", "Investment", "Stock Symbol"])
+#     st.dataframe(df_all_data)
+
+# Fetch stock data
+stock_data = get_stock_data(stock_symbol)
+
+# Process stock data
+if "Time Series (Daily)" in stock_data:
+    ts_data = stock_data["Time Series (Daily)"]
+    dates = list(ts_data.keys())
+    close_prices = [float(ts_data[date]["4. close"]) for date in dates]
+    stock_df = pd.DataFrame({
+        "Date": dates,
+        "Close Price": close_prices
+    })
+    stock_df["Date"] = pd.to_datetime(stock_df["Date"])
+    stock_df = stock_df.sort_values("Date")
+else:
+    st.error("Error fetching stock data. Please check the stock symbol and API key.")
+
+# Data for display
+data = {
+    "Category": ["Income", "Expenses", "Investment"],
+    "Amount": [income, expenses, investment]
+}
+
+df = pd.DataFrame(data)
+
+# Display data table
+st.subheader("Financial Summary")
+st.dataframe(df)
+
+# Line Chart
+st.subheader("Income vs Expenses")
+fig, ax = plt.subplots()
+ax.plot(df["Category"], df["Amount"], marker='o', color='#3c40c6')
+st.pyplot(fig)
+
+# Bar Chart
+st.subheader("Financial Breakdown")
+st.bar_chart(df.set_index("Category"))
+
+# Stock Prices Line Chart
+st.subheader(f"{stock_symbol} Stock Prices")
+if "Time Series (Daily)" in stock_data:
+    st.line_chart(stock_df.set_index("Date")["Close Price"], use_container_width=True)
+else:
+    st.error("Error fetching stock data. Please check the stock symbol and API key.")
+
+# Map
+st.subheader("Investments by Location")
+locations = pd.DataFrame({
+    'lat': np.random.uniform(37.76, 37.77, 10),
+    'lon': np.random.uniform(-122.42, -122.41, 10)
+})
+st.map(locations)
+
+# Interactive Widgets
+if st.button("Calculate Savings"):
+    savings = income - expenses - investment
+    if savings > 0:
+        st.success(f"Your monthly savings are: ${savings:.2f}")
+    elif savings == 0:
+        st.info("You are breaking even.")
     else:
-        st.error(f"Error: {response.status_code} - {response.text}")
-        return None
+        st.warning(f"You are overspending by: ${abs(savings):.2f}")
 
-def fetch_detailed_results(task_id):
-    detailed_results_url = f"{URLSCAN_RESULT_API_URL}{task_id}/"
-    for _ in range(10):  # Try up to 10 times
-        response = requests.get(detailed_results_url)
-        if response.status_code == 200:
-            return response.json()
-        elif response.status_code == 404:
-            st.info("Scan is still in progress, waiting for results...")
-            time.sleep(10)  # Wait for 10 seconds before trying again
-        else:
-            st.error(f"Error fetching detailed results: {response.status_code} - {response.text}")
-            return None
-    st.error("Scan did not complete within the expected time frame.")
-    return None
+st.checkbox("I agree to the terms and conditions")
 
-#Title
-st.title("Malware Analyzer")
+# Additional Widgets
+st.radio("Select an option:", ["Option 1", "Option 2", "Option 3"])
+st.selectbox("Select a category:", ["Income", "Expenses", "Investment"])
+st.multiselect("Select multiple categories:", ["Income", "Expenses", "Investment"])
+st.slider("Select a range:", 0, 100, (25, 75))
+st.text_input("Enter a note:")
+st.text_area("Enter detailed notes:")
 
-#Select options
-selection = st.selectbox("Please select an option: ",
-                         ("IP Address", "Website URL", "File Upload"))
-st.write("You have selected ", selection)
+# Feedback Messages
+st.success("This is a success message!")
+st.info("This is an informational message.")
+st.warning("This is a warning message.")
+st.error("This is an error message.")
 
-#IP condition
-if selection == "IP Address":
-
-    input_IP = st.text_input("IP Address", "")
+# Run the application
+if __name__ == '__main__':
+    st.set_page_config(page_title="Personal Finance Dashboard")
+    st.write("Personal Finance Dashboard is running...")
 
 
-#URL condition
-elif selection == "Website URL":
-    input_URL = st.text_input("Website URL", "")
-
-    scan_button = st.sidebar.button('Start Scan')
-
-    if scan_button and selection:
-        st.info(f'Scanning {selection}...')
-        scan_results = fetch_scan_results(selection)
-        st.success('Scan Completed!')
-
-        # Display scan results
-        st.header('Scan Results')
-
-        # Interactive Table
-        st.subheader('Detailed Results')
-        results_df = pd.DataFrame(scan_results)
-        st.dataframe(results_df)
-
-        # Charts
-        st.subheader('Threat Types')
-        threat_types = results_df['threat_types'].value_counts()
-        fig = px.bar(threat_types, x=threat_types.index, y=threat_types.values, title='Threat Types')
-        st.plotly_chart(fig)
-
-        st.subheader('Scan History')
-        scan_history = results_df['scan_date'].value_counts()
-        fig = px.line(scan_history, x=scan_history.index, y=scan_history.values, title='Scan History')
-        st.plotly_chart(fig)
-
-        # Map
-        st.subheader('Server Locations')
-        locations = results_df[['latitude', 'longitude']]
-        st.map(locations)
-
-        # Feedback and Messages Boxes
-        st.success('Scan and Analysis Completed Successfully')
-    else:
-        st.warning('Please enter a valid URL to scan.')
 
 
