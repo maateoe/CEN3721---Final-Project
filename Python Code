@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 
 # Set up the URLScan API
-URLSCAN_API_KEY = '32e855ee-c1eb-4c2e-b8b0-74662973ae28'  # Add your actual API key here
+URLSCAN_API_KEY = '32e855ee-c1eb-4c2e-b8b0-74662973ae28'  
 URLSCAN_API_URL = 'https://urlscan.io/api/v1/scan/'
 URLSCAN_RESULT_API_URL = 'https://urlscan.io/api/v1/result/'
 
@@ -86,9 +86,5 @@ elif selection == "Website URL":
         st.success('Scan and Analysis Completed Successfully')
     else:
         st.warning('Please enter a valid URL to scan.')
-
-
-
-
 
 
