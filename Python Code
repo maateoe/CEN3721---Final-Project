@@ -1,8 +1,37 @@
 import streamlit as st
 import requests
+import pandas as pd
+import plotly.express as px
 
+# Set up the URLScan API
+URLSCAN_API_KEY = '32e855ee-c1eb-4c2e-b8b0-74662973ae28'  # Add your actual API key here
+URLSCAN_API_URL = 'https://urlscan.io/api/v1/scan/'
+URLSCAN_RESULT_API_URL = 'https://urlscan.io/api/v1/result/'
 
-api_key = "32e855ee-c1eb-4c2e-b8b0-74662973ae28";
+def fetch_scan_results(url):
+    headers = {'API-Key': URLSCAN_API_KEY, 'Content-Type': 'application/json'}
+    data = {'url': url, 'public': 'on'}
+    response = requests.post(URLSCAN_API_URL, headers=headers, json=data)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        st.error(f"Error: {response.status_code} - {response.text}")
+        return None
+
+def fetch_detailed_results(task_id):
+    detailed_results_url = f"{URLSCAN_RESULT_API_URL}{task_id}/"
+    for _ in range(10):  # Try up to 10 times
+        response = requests.get(detailed_results_url)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            st.info("Scan is still in progress, waiting for results...")
+            time.sleep(10)  # Wait for 10 seconds before trying again
+        else:
+            st.error(f"Error fetching detailed results: {response.status_code} - {response.text}")
+            return None
+    st.error("Scan did not complete within the expected time frame.")
+    return None
 
 #Title
 st.title("Malware Analyzer")
@@ -15,17 +44,50 @@ st.write("You have selected ", selection)
 #IP condition
 if selection == "IP Address":
 
-    st.write("What information would you like to view")
-
+    input_IP = st.text_input("IP Address", "")
 
 
 #URL condition
 elif selection == "Website URL":
-    st.write("UNDER CONSTRUCTION")
+    input_URL = st.text_input("Website URL", "")
 
-#File condition
-elif selection == "File Upload":
-    st.write("UNDER CONSTRUCTION")
+    scan_button = st.sidebar.button('Start Scan')
+
+    if scan_button and selection:
+        st.info(f'Scanning {selection}...')
+        scan_results = fetch_scan_results(selection)
+        st.success('Scan Completed!')
+
+        # Display scan results
+        st.header('Scan Results')
+
+        # Interactive Table
+        st.subheader('Detailed Results')
+        results_df = pd.DataFrame(scan_results)
+        st.dataframe(results_df)
+
+        # Charts
+        st.subheader('Threat Types')
+        threat_types = results_df['threat_types'].value_counts()
+        fig = px.bar(threat_types, x=threat_types.index, y=threat_types.values, title='Threat Types')
+        st.plotly_chart(fig)
+
+        st.subheader('Scan History')
+        scan_history = results_df['scan_date'].value_counts()
+        fig = px.line(scan_history, x=scan_history.index, y=scan_history.values, title='Scan History')
+        st.plotly_chart(fig)
+
+        # Map
+        st.subheader('Server Locations')
+        locations = results_df[['latitude', 'longitude']]
+        st.map(locations)
+
+        # Feedback and Messages Boxes
+        st.success('Scan and Analysis Completed Successfully')
+    else:
+        st.warning('Please enter a valid URL to scan.')
+
+
 
 
 
