@@ -3,3 +3,30 @@ import requests
 
 
 api_key = "32e855ee-c1eb-4c2e-b8b0-74662973ae28";
+
+#Title
+st.title("Malware Analyzer")
+
+#Select options
+selection = st.selectbox("Please select an option: ",
+                         ("IP Address", "Website URL", "File Upload"))
+st.write("You have selected ", selection)
+
+#IP condition
+if selection == "IP Address":
+
+    st.write("What information would you like to view")
+
+
+
+#URL condition
+elif selection == "Website URL":
+    st.write("UNDER CONSTRUCTION")
+
+#File condition
+elif selection == "File Upload":
+    st.write("UNDER CONSTRUCTION")
+
+
+
+
