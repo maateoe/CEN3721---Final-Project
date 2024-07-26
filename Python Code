@@ -194,7 +194,7 @@ st.pyplot(fig)
 st.subheader("Financial Breakdown")
 st.bar_chart(df.set_index("Category"))
 
-# Error on line 200
+# ERROR on line 200
 # Stock Prices Line Chart
 st.subheader(f"{stock_symbol} Stock Prices")
 if "Time Series (Daily)" in stock_data:
