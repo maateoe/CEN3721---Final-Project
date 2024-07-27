@@ -156,8 +156,6 @@ stock_symbol = st.sidebar.text_input("Enter stock symbol:", value="AAPL")
 # Fetch stock data
 stock_data = get_stock_data(stock_symbol)
 
-# ERROR
-# Not getting any system errors in python but it doesn't fetch the stock data
 # Process stock data
 if "Time Series (Daily)" in stock_data:
     ts_data = stock_data["Time Series (Daily)"]
@@ -194,11 +192,9 @@ st.pyplot(fig)
 st.subheader("Financial Breakdown")
 st.bar_chart(df.set_index("Category"))
 
-# ERROR on line 200
 # Stock Prices Line Chart
 st.subheader(f"{stock_symbol} Stock Prices")
 if "Time Series (Daily)" in stock_data:
-    # The "stock_df" part is undefined apparently when I run it
     st.line_chart(stock_df.set_index("Date")["Close Price"], use_container_width=True)
 else:
     st.error("Error fetching stock data. Please check the stock symbol and API key.")
